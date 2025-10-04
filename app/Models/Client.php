@@ -20,6 +20,8 @@ class Client extends Model
         'employment',
         'income',
         'expenses',
+        'employment_years',
+        'company_name',
     ];
 
     protected $casts = [
@@ -50,6 +52,14 @@ class Client extends Model
     public function loans(): HasMany
     {
         return $this->hasMany(Loan::class);
+    }
+
+    /**
+     * Get all documents for the client.
+     */
+    public function documents(): HasMany
+    {
+        return $this->hasMany(ClientDocument::class);
     }
 
     /**
