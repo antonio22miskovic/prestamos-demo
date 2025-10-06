@@ -97,21 +97,21 @@
                 </div>
 
                 <form method="POST" action="{{ route('register') }}" class="mt-8 space-y-6">
-                    @csrf
+        @csrf
 
-                    <!-- Name -->
-                    <div>
+        <!-- Name -->
+        <div>
                         <x-input-label for="name" :value="__('Nombre completo')" />
                         <x-text-input id="name" class="block mt-1 w-full" type="text" name="name" :value="old('name')" required autofocus autocomplete="name" placeholder="Ingresa tu nombre completo" />
-                        <x-input-error :messages="$errors->get('name')" class="mt-2" />
-                    </div>
+            <x-input-error :messages="$errors->get('name')" class="mt-2" />
+        </div>
 
-                    <!-- Email Address -->
+        <!-- Email Address -->
                     <div>
                         <x-input-label for="email" :value="__('Correo electrónico')" />
                         <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required autocomplete="username" placeholder="ejemplo@correo.com" />
-                        <x-input-error :messages="$errors->get('email')" class="mt-2" />
-                    </div>
+            <x-input-error :messages="$errors->get('email')" class="mt-2" />
+        </div>
 
                     <!-- Phone -->
                     <div>
@@ -126,22 +126,22 @@
                         </p>
                     </div>
 
-                    <!-- Password -->
+        <!-- Password -->
                     <div>
                         <x-input-label for="password" :value="__('Contraseña')" />
                         <x-text-input id="password" class="block mt-1 w-full" type="password" name="password" required autocomplete="new-password" />
-                        <x-input-error :messages="$errors->get('password')" class="mt-2" />
+            <x-input-error :messages="$errors->get('password')" class="mt-2" />
                         <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
                             Mínimo 8 caracteres
                         </p>
-                    </div>
+        </div>
 
-                    <!-- Confirm Password -->
+        <!-- Confirm Password -->
                     <div>
                         <x-input-label for="password_confirmation" :value="__('Confirmar contraseña')" />
                         <x-text-input id="password_confirmation" class="block mt-1 w-full" type="password" name="password_confirmation" required autocomplete="new-password" />
-                        <x-input-error :messages="$errors->get('password_confirmation')" class="mt-2" />
-                    </div>
+            <x-input-error :messages="$errors->get('password_confirmation')" class="mt-2" />
+        </div>
 
                     <!-- Terms and Conditions -->
                     <div>
@@ -163,7 +163,7 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                             </svg>
                             {{ __('Crear mi cuenta') }}
-                        </x-primary-button>
+            </x-primary-button>
                     </div>
 
                     <div class="text-center">

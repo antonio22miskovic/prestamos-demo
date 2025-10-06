@@ -35,7 +35,30 @@ Route::get('/dashboard', function () {
 
 // Admin Routes
 Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
+    // Dashboard principal - redirige a solicitudes por defecto
     Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
+    
+    // Gestión de Solicitudes (página por defecto)
+    Route::get('/applications', [App\Http\Controllers\Admin\ApplicationsController::class, 'index'])->name('applications.index');
+    Route::get('/applications/data', [App\Http\Controllers\Admin\ApplicationsController::class, 'getApplicationsData'])->name('applications.data');
+    Route::get('/applications/{application}', [App\Http\Controllers\Admin\ApplicationsController::class, 'show'])->name('applications.show');
+    Route::patch('/applications/{application}/approve', [App\Http\Controllers\Admin\ApplicationsController::class, 'approve'])->name('applications.approve');
+    Route::patch('/applications/{application}/reject', [App\Http\Controllers\Admin\ApplicationsController::class, 'reject'])->name('applications.reject');
+    Route::get('/applications/{application}/download/{document}', [App\Http\Controllers\Admin\ApplicationsController::class, 'downloadDocument'])->name('applications.download-document');
+    
+    // Gestión de Clientes
+    Route::get('/clients', [App\Http\Controllers\Admin\ClientsController::class, 'index'])->name('clients.index');
+    Route::get('/clients/{client}', [App\Http\Controllers\Admin\ClientsController::class, 'show'])->name('clients.show');
+    
+    // Estadísticas y Reportes
+    Route::get('/statistics', [App\Http\Controllers\Admin\StatisticsController::class, 'index'])->name('statistics.index');
+    Route::get('/statistics/export', [App\Http\Controllers\Admin\StatisticsController::class, 'export'])->name('statistics.export');
+    
+    // Amortization Routes
+    Route::get('/loans/{loan}/amortization', [App\Http\Controllers\Admin\AmortizationController::class, 'show'])->name('amortization.show');
+    Route::patch('/amortization/{schedule}/payment', [App\Http\Controllers\Admin\AmortizationController::class, 'updatePayment'])->name('amortization.update-payment');
+    Route::get('/loans/{loan}/amortization/pdf', [App\Http\Controllers\Admin\AmortizationController::class, 'downloadPdf'])->name('amortization.download-pdf');
+    Route::post('/loans/{loan}/amortization/regenerate', [App\Http\Controllers\Admin\AmortizationController::class, 'regenerate'])->name('amortization.regenerate');
 });
 
 // Client Routes  

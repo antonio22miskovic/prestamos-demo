@@ -71,6 +71,14 @@ class Loan extends Model
     }
 
     /**
+     * Get the amortization schedule for the loan.
+     */
+    public function amortizationSchedule(): HasMany
+    {
+        return $this->hasMany(AmortizationSchedule::class);
+    }
+
+    /**
      * Get the contract for this loan.
      */
     public function contract(): HasOne
@@ -128,5 +136,50 @@ class Loan extends Model
             ->where('status', 'pending')
             ->where('due_date', '<', now())
             ->get();
+    }
+
+    /**
+     * Generate amortization schedule using French amortization system.
+     */
+    public function generateAmortizationSchedule(): void
+    {
+        // Delete existing schedule if any
+        $this->amortizationSchedule()->delete();
+
+        $monthlyRate = $this->interest_rate / 12 / 100;
+        $principal = $this->amount;
+        $months = $this->term_months;
+        $monthlyPayment = $this->monthly_fee;
+
+        $balance = $principal;
+        $currentDate = $this->start_date;
+
+        for ($i = 1; $i <= $months; $i++) {
+            $interestPayment = $balance * $monthlyRate;
+            $principalPayment = $monthlyPayment - $interestPayment;
+            $newBalance = $balance - $principalPayment;
+
+            // Ensure the last payment covers any remaining balance
+            if ($i === $months && $newBalance != 0) {
+                $principalPayment += $newBalance;
+                $monthlyPayment = $interestPayment + $principalPayment;
+                $newBalance = 0;
+            }
+
+            $this->amortizationSchedule()->create([
+                'period_number' => $i,
+                'due_date' => $currentDate->copy()->addMonth(),
+                'beginning_balance' => $balance,
+                'payment_amount' => $monthlyPayment,
+                'principal_payment' => $principalPayment,
+                'interest_payment' => $interestPayment,
+                'ending_balance' => max(0, $newBalance),
+                'status' => 'pending',
+                'amount_paid' => 0
+            ]);
+
+            $balance = $newBalance;
+            $currentDate = $currentDate->addMonth();
+        }
     }
 }
