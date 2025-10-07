@@ -57,7 +57,7 @@ class ApplicationsController extends Controller
         $client = $user->client;
 
         $application = $client->loanApplications()
-            ->with(['loan'])
+            ->with(['loan.contract', 'loan.amortizationSchedule'])
             ->findOrFail($applicationId);
 
         // Get client documents

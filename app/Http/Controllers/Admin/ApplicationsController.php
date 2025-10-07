@@ -136,7 +136,8 @@ class ApplicationsController extends Controller
     {
         $application->load([
             'client.user',
-            'loan',
+            'loan.contract',
+            'loan.amortizationSchedule',
             'documents' => function ($query) {
                 $query->orderBy('doc_type');
             }

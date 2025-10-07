@@ -306,11 +306,50 @@
                                 @endif
                             </span>
                         </div>
-                        <div class="pt-3">
+                        <div class="flex justify-between">
+                            <span class="text-sm text-gray-500 dark:text-gray-400">Contrato:</span>
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                @if($application->loan->contract) bg-green-100 text-green-800
+                                @elseif($application->loan->amortizationSchedule->count() > 0) bg-yellow-100 text-yellow-800
+                                @else bg-gray-100 text-gray-800
+                                @endif">
+                                @if($application->loan->contract) Generado
+                                @elseif($application->loan->amortizationSchedule->count() > 0) Disponible
+                                @else Sin tabla de amortización
+                                @endif
+                            </span>
+                        </div>
+                        <div class="pt-3 space-y-2">
                             <a href="{{ route('client.loans.show', $application->loan->id) }}" 
                                class="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                                 Ver Préstamo
                             </a>
+                            
+                            @if($application->loan->contract)
+                                <a href="{{ route('client.contracts.show', $application->loan->id) }}" 
+                                   class="w-full inline-flex justify-center items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                    </svg>
+                                    Ver Contrato
+                                </a>
+                            @elseif($application->loan->amortizationSchedule->count() > 0)
+                                <a href="#" 
+                                   class="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                                   onclick="confirmContractGeneration('{{ route('client.contracts.generate', $application->loan->id) }}'); return false;">
+                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                                    </svg>
+                                    Generar Contrato
+                                </a>
+                            @else
+                                <div class="w-full text-center text-sm text-gray-500 dark:text-gray-400 py-2">
+                                    <svg class="w-4 h-4 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                                    </svg>
+                                    Esperando tabla de amortización
+                                </div>
+                            @endif
                         </div>
                     </div>
                 </div>

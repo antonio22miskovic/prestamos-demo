@@ -280,10 +280,25 @@
                                     </span>
                                 </dd>
                             </div>
+                            <div>
+                                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Contrato</dt>
+                                <dd class="mt-1">
+                                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full
+                                        @if($application->loan->contract) bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300
+                                        @elseif($application->loan->amortizationSchedule->count() > 0) bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300
+                                        @else bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300
+                                        @endif">
+                                        @if($application->loan->contract) Generado
+                                        @elseif($application->loan->amortizationSchedule->count() > 0) Disponible
+                                        @else Sin tabla de amortización
+                                        @endif
+                                    </span>
+                                </dd>
+                            </div>
                         </dl>
                         
-                        <!-- Amortization Button -->
-                        <div class="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+                        <!-- Action Buttons -->
+                        <div class="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700 space-y-3">
                             <a href="{{ route('admin.amortization.show', $application->loan) }}" 
                                class="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
                                 <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -291,6 +306,48 @@
                                 </svg>
                                 Ver Tabla de Amortización
                             </a>
+                            
+                            @if($application->loan->contract)
+                                <div class="space-y-2">
+                                    <div class="w-full text-center text-sm text-green-600 dark:text-green-400 py-2 bg-green-50 dark:bg-green-900/20 rounded-md">
+                                        <svg class="h-4 w-4 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                        </svg>
+                                        Contrato Generado
+                                    </div>
+                                    <a href="{{ route('admin.contracts.show', $application->loan->id) }}" 
+                                       class="w-full inline-flex justify-center items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                        <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                        </svg>
+                                        Ver Contrato
+                                    </a>
+                                    <a href="{{ route('admin.contracts.download', $application->loan->id) }}" 
+                                       class="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                        <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                        </svg>
+                                        Descargar PDF
+                                    </a>
+                                </div>
+                            @elseif($application->loan->amortizationSchedule->count() > 0)
+                                <a href="#" 
+                                   class="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                                   onclick="confirmContractGeneration('{{ route('admin.contracts.generate', $application->loan->id) }}'); return false;">
+                                    <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                                    </svg>
+                                    Generar Contrato
+                                </a>
+                            @else
+                                <div class="w-full text-center text-sm text-gray-500 dark:text-gray-400 py-2">
+                                    <svg class="h-4 w-4 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                                    </svg>
+                                    Esperando tabla de amortización
+                                </div>
+                            @endif
                         </div>
                     </div>
                 </div>

@@ -59,6 +59,12 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('ad
     Route::patch('/amortization/{schedule}/payment', [App\Http\Controllers\Admin\AmortizationController::class, 'updatePayment'])->name('amortization.update-payment');
     Route::get('/loans/{loan}/amortization/pdf', [App\Http\Controllers\Admin\AmortizationController::class, 'downloadPdf'])->name('amortization.download-pdf');
     Route::post('/loans/{loan}/amortization/regenerate', [App\Http\Controllers\Admin\AmortizationController::class, 'regenerate'])->name('amortization.regenerate');
+    
+    // Contract Routes
+    Route::get('/contracts', [App\Http\Controllers\Admin\ContractsController::class, 'index'])->name('contracts.index');
+    Route::get('/contracts/{loan}', [App\Http\Controllers\Admin\ContractsController::class, 'show'])->name('contracts.show');
+    Route::get('/contracts/{loan}/download', [App\Http\Controllers\Admin\ContractsController::class, 'download'])->name('contracts.download');
+    Route::post('/contracts/{loan}/generate', [App\Http\Controllers\Admin\ContractsController::class, 'generate'])->name('contracts.generate');
 });
 
 // Client Routes  
@@ -76,6 +82,7 @@ Route::middleware(['auth', 'role:client'])->prefix('client')->name('client.')->g
     Route::get('/contracts', [App\Http\Controllers\Client\ContractsController::class, 'index'])->name('contracts.index');
     Route::get('/contracts/{contract}', [App\Http\Controllers\Client\ContractsController::class, 'show'])->name('contracts.show');
     Route::get('/contracts/{contract}/download', [App\Http\Controllers\Client\ContractsController::class, 'download'])->name('contracts.download');
+    Route::post('/contracts/{loan}/generate', [App\Http\Controllers\Client\ContractsController::class, 'generate'])->name('contracts.generate');
     
     Route::get('/profile', [App\Http\Controllers\Client\ProfileController::class, 'index'])->name('profile.index');
     Route::get('/profile/edit', [App\Http\Controllers\Client\ProfileController::class, 'edit'])->name('profile.edit');
