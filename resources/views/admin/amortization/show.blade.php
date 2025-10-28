@@ -205,113 +205,211 @@
     </div>
 </div>
 
-<!-- Payment Modal -->
-<div id="paymentModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden" style="z-index: 50;">
-    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800">
-        <div class="mt-3">
-            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Editar Pago</h3>
-            <form id="paymentForm">
-                @csrf
-                @method('PATCH')
-                <div class="mb-4">
-                    <label for="amount_paid" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Monto Pagado
-                    </label>
-                    <input type="number" 
-                           id="amount_paid" 
-                           name="amount_paid" 
-                           step="0.01" 
-                           min="0"
-                           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white">
-                </div>
-                
-                <div class="mb-4">
-                    <label for="payment_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Fecha de Pago
-                    </label>
-                    <input type="date" 
-                           id="payment_date" 
-                           name="payment_date"
-                           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white">
-                </div>
-                
-                <div class="mb-4">
-                    <label for="notes" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Notas
-                    </label>
-                    <textarea id="notes" 
-                              name="notes" 
-                              rows="3"
-                              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"></textarea>
-                </div>
-                
-                <div class="flex justify-end space-x-3 pt-4">
-                    <button type="button" 
-                            onclick="closePaymentModal()"
-                            class="px-4 py-2 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
-                        Cancelar
-                    </button>
-                    <button type="submit"
-                            class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors">
-                        Guardar
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
+<!-- Payment Modal is now handled by SweetAlert2 -->
 
 @endsection
 
 @push('scripts')
 <script>
-let currentPaymentId = null;
+async function openPaymentModal(paymentId, maxAmount, currentPaid, paymentDate, notes) {
+    const { value: formValues } = await Swal.fire({
+        title: 'Editar Pago',
+        html: `
+            <div class="space-y-4" style="text-align: left;">
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Monto Pagado</label>
+                    <input id="swal-amount_paid" 
+                           type="number" 
+                           step="0.01" 
+                           min="0" 
+                           max="${maxAmount}"
+                           value="${currentPaid}"
+                           class="swal2-input bg-gray-700 text-white border-gray-600">
+                    <div class="text-xs text-gray-400 mt-1">Monto máximo: $${parseFloat(maxAmount).toLocaleString('es-MX', {minimumFractionDigits: 2})}</div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Fecha de Pago</label>
+                    <input id="swal-payment_date" 
+                           type="date" 
+                           value="${paymentDate}"
+                           class="swal2-input bg-gray-700 text-white border-gray-600">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Notas</label>
+                    <textarea id="swal-notes" 
+                              rows="3"
+                              class="swal2-input bg-gray-700 text-white border-gray-600">${notes}</textarea>
+                </div>
+            </div>
+        `,
+        icon: 'info',
+        showCancelButton: true,
+        confirmButtonText: 'Guardar Cambios',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#2563eb',
+        cancelButtonColor: '#6b7280',
+        reverseButtons: true,
+        focusConfirm: false,
+        preConfirm: () => {
+            return {
+                amount_paid: document.getElementById('swal-amount_paid').value,
+                payment_date: document.getElementById('swal-payment_date').value,
+                notes: document.getElementById('swal-notes').value
+            };
+        },
+        customClass: {
+            popup: 'bg-gray-800 text-white',
+            title: 'text-white',
+            htmlContainer: 'text-gray-300',
+            confirmButton: 'px-6 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white',
+            cancelButton: 'px-6 py-2 rounded-md bg-gray-600 hover:bg-gray-700 text-white',
+            input: 'bg-gray-700 text-white border-gray-600',
+            textarea: 'bg-gray-700 text-white border-gray-600'
+        }
+    });
 
-function openPaymentModal(paymentId, maxAmount, currentPaid, paymentDate, notes) {
-    currentPaymentId = paymentId;
-    document.getElementById('amount_paid').value = currentPaid;
-    document.getElementById('amount_paid').max = maxAmount;
-    document.getElementById('payment_date').value = paymentDate;
-    document.getElementById('notes').value = notes;
-    document.getElementById('paymentModal').classList.remove('hidden');
-}
-
-function closePaymentModal() {
-    document.getElementById('paymentModal').classList.add('hidden');
-    currentPaymentId = null;
-}
-
-document.getElementById('paymentForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    
-    if (!currentPaymentId) return;
-    
-    const formData = new FormData(this);
-    
-    try {
-        const response = await fetch(`/admin/amortization/${currentPaymentId}/payment`, {
-            method: 'PATCH',
-            body: formData,
-            headers: {
-                'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value
+    if (formValues) {
+        // Mostrar loading
+        Swal.fire({
+            title: 'Guardando...',
+            text: 'Por favor espera',
+            icon: 'info',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            didOpen: () => {
+                Swal.showLoading();
+            },
+            customClass: {
+                popup: 'bg-gray-800 text-white',
+                title: 'text-white',
+                htmlContainer: 'text-gray-300'
             }
         });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            location.reload();
-        } else {
-            alert('Error al actualizar el pago');
-        }
-    } catch (error) {
-        console.error('Error:', error);
-        alert('Error al actualizar el pago');
-    }
-});
 
-function regenerateSchedule() {
-    if (confirm('¿Está seguro de que desea regenerar la tabla de amortización? Esto eliminará todos los registros de pagos existentes.')) {
+        // Validación
+        if (parseFloat(formValues.amount_paid) > parseFloat(maxAmount)) {
+            Swal.fire({
+                title: 'Error',
+                text: 'El monto pagado no puede ser mayor al monto de la cuota.',
+                icon: 'error',
+                confirmButtonColor: '#ef4444',
+                customClass: {
+                    popup: 'bg-gray-800 text-white',
+                    title: 'text-white',
+                    htmlContainer: 'text-gray-300'
+                }
+            });
+            return;
+        }
+
+        try {
+            const formData = new FormData();
+            formData.append('amount_paid', formValues.amount_paid);
+            formData.append('payment_date', formValues.payment_date);
+            formData.append('notes', formValues.notes);
+            formData.append('_token', document.querySelector('input[name="_token"]').value);
+            formData.append('_method', 'PATCH');
+
+            const response = await fetch(`{{ url('/admin/amortization') }}/${paymentId}/payment`, {
+                method: 'PATCH',
+                body: formData,
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
+            
+            const result = await response.json();
+            
+            if (response.ok && result.success) {
+                Swal.fire({
+                    title: '¡Éxito!',
+                    text: 'Pago actualizado correctamente',
+                    icon: 'success',
+                    confirmButtonColor: '#10b981',
+                    customClass: {
+                        popup: 'bg-gray-800 text-white',
+                        title: 'text-white',
+                        htmlContainer: 'text-gray-300'
+                    }
+                }).then(() => {
+                    location.reload();
+                });
+            } else {
+                throw new Error(result.message || 'Error al actualizar el pago');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            Swal.fire({
+                title: 'Error',
+                text: error.message || 'Error al actualizar el pago',
+                icon: 'error',
+                confirmButtonColor: '#ef4444',
+                customClass: {
+                    popup: 'bg-gray-800 text-white',
+                    title: 'text-white',
+                    htmlContainer: 'text-gray-300'
+                }
+            });
+        }
+    }
+}
+
+async function regenerateSchedule() {
+    const confirmed = await Swal.fire({
+        title: '¿Regenerar Tabla de Amortización?',
+        html: `
+            <div class="space-y-4">
+                <p class="text-gray-300 mb-4">Esta acción eliminará todos los registros de pagos existentes y creará una nueva tabla de amortización basada en los parámetros del préstamo.</p>
+                <div class="bg-red-900/30 border border-red-700 rounded-lg p-4">
+                    <div class="flex items-start">
+                        <svg class="w-6 h-6 text-red-400 mr-3 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                        </svg>
+                        <div>
+                            <p class="text-red-300 font-semibold">Advertencia</p>
+                            <p class="text-red-200 text-sm">Todos los datos de pagos se perderán permanentemente.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, Regenerar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#dc2626',
+        cancelButtonColor: '#6b7280',
+        reverseButtons: true,
+        customClass: {
+            popup: 'bg-gray-800 text-white',
+            title: 'text-white',
+            htmlContainer: 'text-gray-300',
+            confirmButton: 'px-6 py-2 rounded-md bg-red-600 hover:bg-red-700 text-white',
+            cancelButton: 'px-6 py-2 rounded-md bg-gray-600 hover:bg-gray-700 text-white'
+        }
+    });
+
+    if (confirmed.isConfirmed) {
+        // Mostrar loading
+        Swal.fire({
+            title: 'Regenerando...',
+            text: 'Por favor espera',
+            icon: 'info',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            didOpen: () => {
+                Swal.showLoading();
+            },
+            customClass: {
+                popup: 'bg-gray-800 text-white',
+                title: 'text-white',
+                htmlContainer: 'text-gray-300'
+            }
+        });
+
+        // Crear y enviar formulario
         const form = document.createElement('form');
         form.method = 'POST';
         form.action = '{{ route("admin.amortization.regenerate", $loan) }}';
@@ -327,11 +425,6 @@ function regenerateSchedule() {
     }
 }
 
-// Close modal when clicking outside
-document.getElementById('paymentModal').addEventListener('click', function(e) {
-    if (e.target === this) {
-        closePaymentModal();
-    }
-});
+// No longer needed - using SweetAlert2 modals
 </script>
 @endpush
