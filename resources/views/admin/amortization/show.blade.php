@@ -210,6 +210,9 @@
 @endsection
 
 @push('scripts')
+<!-- SweetAlert2 -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
 <script>
 async function openPaymentModal(paymentId, maxAmount, currentPaid, paymentDate, notes) {
     const { value: formValues } = await Swal.fire({
