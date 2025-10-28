@@ -388,8 +388,22 @@ new Chart(ctx, {
 
 // Export function
 function exportData() {
-    // Placeholder for export functionality
-    alert('Funcionalidad de exportación en desarrollo');
+    const dateFrom = document.querySelector('input[name="date_from"]')?.value || '';
+    const dateTo = document.querySelector('input[name="date_to"]')?.value || '';
+    
+    // Build URL with query parameters
+    let url = '{{ route("admin.statistics.export") }}';
+    const params = new URLSearchParams();
+    
+    if (dateFrom) params.append('date_from', dateFrom);
+    if (dateTo) params.append('date_to', dateTo);
+    
+    if (params.toString()) {
+        url += '?' + params.toString();
+    }
+    
+    // Download the file
+    window.location.href = url;
 }
 </script>
 @endsection

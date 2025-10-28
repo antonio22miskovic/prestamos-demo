@@ -54,6 +54,10 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('ad
     Route::get('/statistics', [App\Http\Controllers\Admin\StatisticsController::class, 'index'])->name('statistics.index');
     Route::get('/statistics/export', [App\Http\Controllers\Admin\StatisticsController::class, 'export'])->name('statistics.export');
     
+    // Configuration
+    Route::get('/configuration', [App\Http\Controllers\Admin\ConfigurationController::class, 'index'])->name('configuration.index');
+    Route::put('/configuration', [App\Http\Controllers\Admin\ConfigurationController::class, 'update'])->name('configuration.update');
+    
     // Amortization Routes
     Route::get('/loans/{loan}/amortization', [App\Http\Controllers\Admin\AmortizationController::class, 'show'])->name('amortization.show');
     Route::patch('/amortization/{schedule}/payment', [App\Http\Controllers\Admin\AmortizationController::class, 'updatePayment'])->name('amortization.update-payment');

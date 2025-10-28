@@ -187,8 +187,98 @@ class StatisticsController extends Controller
      */
     public function export(Request $request)
     {
-        // Implementar exportación CSV si es necesario
-        // Por ahora retornamos un placeholder
-        return response()->json(['message' => 'Funcionalidad de exportación en desarrollo']);
+        $dateFrom = $request->filled('date_from') 
+            ? Carbon::parse($request->date_from)->startOfDay() 
+            : Carbon::now()->subMonth()->startOfDay();
+            
+        $dateTo = $request->filled('date_to') 
+            ? Carbon::parse($request->date_to)->endOfDay() 
+            : Carbon::now()->endOfDay();
+
+        // Get all data
+        $applications = LoanApplication::whereBetween('created_at', [$dateFrom, $dateTo])
+            ->with(['client.user', 'loan'])
+            ->get();
+
+        $filename = 'reporte-estadisticas-' . date('Y-m-d') . '.csv';
+        
+        $headers = [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ];
+
+        $callback = function() use ($applications, $dateFrom, $dateTo) {
+            $file = fopen('php://output', 'w');
+            
+            // Add UTF-8 BOM for Excel compatibility
+            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
+            
+            // Headers
+            fputcsv($file, [
+                'ID Solicitud',
+                'Cliente',
+                'Email',
+                'Monto Solicitado',
+                'Monto Aprobado',
+                'Estado',
+                'Fecha Solicitud',
+                'Fecha Aprobación',
+                'Cuotas',
+                'Tasa de Interés',
+                'Monto Total'
+            ]);
+
+            // Data rows
+            foreach ($applications as $app) {
+                fputcsv($file, [
+                    $app->id,
+                    $app->client->user->name ?? 'N/A',
+                    $app->client->user->email ?? 'N/A',
+                    '$' . number_format($app->requested_amount, 2),
+                    $app->loan ? '$' . number_format($app->loan->amount, 2) : 'N/A',
+                    $this->getStatusLabel($app->status),
+                    $app->created_at->format('Y-m-d'),
+                    $app->loan && $app->loan->approved_at ? $app->loan->approved_at->format('Y-m-d') : 'N/A',
+                    $app->loan ? $app->loan->term_months . ' meses' : 'N/A',
+                    $app->loan ? number_format($app->loan->interest_rate, 2) . '%' : 'N/A',
+                    $app->loan ? '$' . number_format($app->loan->total_amount, 2) : 'N/A',
+                ]);
+            }
+
+            // Summary section
+            fputcsv($file, []);
+            fputcsv($file, ['RESUMEN', '']);
+            fputcsv($file, ['Período', $dateFrom->format('Y-m-d') . ' al ' . $dateTo->format('Y-m-d')]);
+            fputcsv($file, ['Total Solicitudes', $applications->count()]);
+            fputcsv($file, ['Aprobadas', $applications->where('status', 'approved')->count()]);
+            fputcsv($file, ['Rechazadas', $applications->where('status', 'rejected')->count()]);
+            fputcsv($file, ['Pendientes', $applications->where('status', 'pending')->count()]);
+            
+            $totalApproved = $applications->sum(function($app) {
+                return $app->loan ? $app->loan->amount : 0;
+            });
+            fputcsv($file, ['Total Monto Aprobado', '$' . number_format($totalApproved, 2)]);
+
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
+    /**
+     * Get human-readable status label.
+     */
+    private function getStatusLabel($status)
+    {
+        $labels = [
+            'pending' => 'Pendiente',
+            'approved' => 'Aprobada',
+            'rejected' => 'Rechazada',
+            'active' => 'Activa',
+            'paid' => 'Pagada',
+            'defaulted' => 'En Mora'
+        ];
+
+        return $labels[$status] ?? ucfirst($status);
     }
 }
