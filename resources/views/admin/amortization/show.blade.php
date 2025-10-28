@@ -219,12 +219,14 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Attach event listeners to edit buttons
     document.querySelectorAll('.edit-payment-btn').forEach(button => {
-        button.addEventListener('click', function() {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
             const paymentId = this.getAttribute('data-payment-id');
             const maxAmount = this.getAttribute('data-max-amount');
             const currentPaid = this.getAttribute('data-current-paid');
             const paymentDate = this.getAttribute('data-payment-date');
             const notes = this.getAttribute('data-notes');
+            
             openPaymentModal(paymentId, maxAmount, currentPaid, paymentDate, notes);
         });
     });
@@ -244,32 +246,39 @@ async function openPaymentModal(paymentId, maxAmount, currentPaid, paymentDate, 
         html: `
             <div class="space-y-4" style="text-align: left;">
                 <div>
-                    <label class="block text-sm font-medium text-gray-300 mb-2">Monto Pagado</label>
-                    <input id="swal-amount_paid" 
-                           type="number" 
-                           step="0.01" 
-                           min="0"
-                           max="${maxAmount}"
-                           value="${currentPaid}"
-                           class="swal2-input bg-gray-700 text-white border-gray-600">
-                    <div class="text-xs text-gray-400 mt-1">Monto máximo: $${parseFloat(maxAmount).toLocaleString('es-MX', {minimumFractionDigits: 2})}</div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Monto Pagado (USD)</label>
+                    <div class="relative">
+                        <span class="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 font-medium">$</span>
+                        <input id="swal-amount_paid" 
+                               name="amount_paid"
+                               type="number" 
+                               step="0.01" 
+                               min="0"
+                               value="${currentPaid}"
+                               class="w-full pl-8 pr-4 py-2.5 bg-gray-700 text-white border border-gray-600 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+                    </div>
+                    <div class="text-xs text-amber-400 mt-1.5">
+                        💡 El monto puede exceder la cuota para aplicar adelantos a cuotas siguientes
+                    </div>
                 </div>
                 
                 <div>
                     <label class="block text-sm font-medium text-gray-300 mb-2">Fecha de Pago</label>
                     <input id="swal-payment_date" 
+                           name="payment_date"
                            type="date" 
                            value="${paymentDate}"
-                           class="swal2-input bg-gray-700 text-white border-gray-600">
+                           class="w-full px-4 py-2.5 bg-gray-700 text-white border border-gray-600 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
                 </div>
                 
                 <div>
                     <label class="block text-sm font-medium text-gray-300 mb-2">Notas</label>
                     <textarea id="swal-notes" 
+                              name="notes"
                               rows="3"
-                              class="swal2-input bg-gray-700 text-white border-gray-600">${notes}</textarea>
+                              class="w-full px-4 py-2.5 bg-gray-700 text-white border border-gray-600 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none">${notes}</textarea>
                 </div>
-                </div>
+            </div>
         `,
         icon: 'info',
         showCancelButton: true,
@@ -279,21 +288,30 @@ async function openPaymentModal(paymentId, maxAmount, currentPaid, paymentDate, 
         cancelButtonColor: '#6b7280',
         reverseButtons: true,
         focusConfirm: false,
+        width: '600px',
+        padding: '2rem',
         preConfirm: () => {
+            const amountPaid = document.getElementById('swal-amount_paid').value;
+            
+            if (!amountPaid || amountPaid <= 0) {
+                Swal.showValidationMessage('El monto pagado es obligatorio y debe ser mayor a 0');
+                return false;
+            }
+            
             return {
-                amount_paid: document.getElementById('swal-amount_paid').value,
+                amount_paid: parseFloat(amountPaid),
                 payment_date: document.getElementById('swal-payment_date').value,
                 notes: document.getElementById('swal-notes').value
             };
         },
         customClass: {
-            popup: 'bg-gray-800 text-white',
-            title: 'text-white',
+            popup: 'bg-gray-800 text-white border border-gray-700 shadow-xl',
+            title: 'text-white text-xl font-semibold',
             htmlContainer: 'text-gray-300',
-            confirmButton: 'px-6 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white',
-            cancelButton: 'px-6 py-2 rounded-md bg-gray-600 hover:bg-gray-700 text-white',
-            input: 'bg-gray-700 text-white border-gray-600',
-            textarea: 'bg-gray-700 text-white border-gray-600'
+            confirmButton: 'px-6 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-all shadow-sm hover:shadow',
+            cancelButton: 'px-6 py-2.5 rounded-lg bg-gray-600 hover:bg-gray-700 text-white font-medium transition-all',
+            input: 'swal2-input',
+            textarea: 'swal2-textarea'
         }
     });
 
@@ -315,37 +333,31 @@ async function openPaymentModal(paymentId, maxAmount, currentPaid, paymentDate, 
             }
         });
 
-        // Validación
-        if (parseFloat(formValues.amount_paid) > parseFloat(maxAmount)) {
-            Swal.fire({
-                title: 'Error',
-                text: 'El monto pagado no puede ser mayor al monto de la cuota.',
-                icon: 'error',
-                confirmButtonColor: '#ef4444',
-                customClass: {
-                    popup: 'bg-gray-800 text-white',
-                    title: 'text-white',
-                    htmlContainer: 'text-gray-300'
-                }
-            });
-            return;
-        }
-
+        // Nota: Se permite monto mayor a la cuota como adelanto para siguientes cuotas
+        
         try {
+            console.log('Form values being sent:', formValues);
+            
             const formData = new FormData();
             formData.append('amount_paid', formValues.amount_paid);
             formData.append('payment_date', formValues.payment_date);
             formData.append('notes', formValues.notes);
-            formData.append('_token', document.querySelector('input[name="_token"]').value);
+            formData.append('_token', document.querySelector('meta[name="csrf-token"]').content);
             formData.append('_method', 'PATCH');
-
-            const response = await fetch(`{{ url('/admin/amortization') }}/${paymentId}/payment`, {
-            method: 'PATCH',
-            body: formData,
-            headers: {
-                    'Accept': 'application/json'
+            
+            console.log('FormData entries:');
+            for (let [key, value] of formData.entries()) {
+                console.log(key, '=', value);
             }
-        });
+
+            const response = await fetch(`{{ route('admin.amortization.update-payment', ':id') }}`.replace(':id', paymentId), {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                }
+            });
         
         const result = await response.json();
         
@@ -368,19 +380,26 @@ async function openPaymentModal(paymentId, maxAmount, currentPaid, paymentDate, 
         }
     } catch (error) {
         console.error('Error:', error);
-            Swal.fire({
-                title: 'Error',
-                text: error.message || 'Error al actualizar el pago',
-                icon: 'error',
-                confirmButtonColor: '#ef4444',
-                customClass: {
-                    popup: 'bg-gray-800 text-white',
-                    title: 'text-white',
-                    htmlContainer: 'text-gray-300'
-                }
-            });
-        }
+        Swal.fire({
+            title: 'Error',
+            html: `<div class="space-y-3">
+                <p class="text-gray-300">${error.message || 'Error al actualizar el pago'}</p>
+                <div class="bg-red-900/30 border border-red-700 rounded-lg p-3 text-sm text-red-200">
+                    Verifica los datos e intenta nuevamente
+                </div>
+            </div>`,
+            icon: 'error',
+            confirmButtonText: 'Cerrar',
+            confirmButtonColor: '#ef4444',
+            customClass: {
+                popup: 'bg-gray-800 text-white',
+                title: 'text-white',
+                htmlContainer: 'text-gray-300',
+                confirmButton: 'px-6 py-2.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-medium transition-all'
+            }
+        });
     }
+}
 }
 
 async function regenerateSchedule() {

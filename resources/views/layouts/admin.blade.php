@@ -325,5 +325,8 @@
             });
         });
     </script>
+
+    <!-- Stack for additional scripts from views -->
+    @stack('scripts')
 </body>
 </html>
