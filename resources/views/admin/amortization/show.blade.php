@@ -210,23 +210,10 @@
 @endsection
 
 @push('scripts')
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11" defer></script>
-<script defer>
-(async function() {
-    // Wait for DOM and SweetAlert2 to be ready
-    await new Promise(resolve => {
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', resolve);
-        } else {
-            resolve();
-        }
-    });
-    
-    // Wait a bit for SweetAlert2 to load
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
-    // Now define functions
-    window.openPaymentModal = async function(paymentId, maxAmount, currentPaid, paymentDate, notes) {
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+// Define functions immediately in global scope
+async function openPaymentModal(paymentId, maxAmount, currentPaid, paymentDate, notes) {
     const { value: formValues } = await Swal.fire({
         title: 'Editar Pago',
         html: `
@@ -369,9 +356,9 @@
             });
         }
     }
-    };
-    
-    window.regenerateSchedule = async function() {
+}
+
+async function regenerateSchedule() {
     const confirmed = await Swal.fire({
         title: '¿Regenerar Tabla de Amortización?',
         html: `
@@ -438,7 +425,6 @@
         document.body.appendChild(form);
         form.submit();
     }
-    };
-})();
+}
 </script>
 @endpush
