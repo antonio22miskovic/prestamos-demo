@@ -210,11 +210,22 @@
 @endsection
 
 @push('scripts')
-<!-- SweetAlert2 -->
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
 <script>
-async function openPaymentModal(paymentId, maxAmount, currentPaid, paymentDate, notes) {
+// Load SweetAlert2 dynamically
+(function() {
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/sweetalert2@11';
+    script.async = true;
+    script.onload = function() {
+        // Initialize functions after SweetAlert2 loads
+        initializeFunctions();
+    };
+    document.head.appendChild(script);
+})();
+
+function initializeFunctions() {
+    // Define functions in global scope
+    window.openPaymentModal = async function(paymentId, maxAmount, currentPaid, paymentDate, notes) {
     const { value: formValues } = await Swal.fire({
         title: 'Editar Pago',
         html: `
@@ -224,7 +235,7 @@ async function openPaymentModal(paymentId, maxAmount, currentPaid, paymentDate, 
                     <input id="swal-amount_paid" 
                            type="number" 
                            step="0.01" 
-                           min="0" 
+                           min="0"
                            max="${maxAmount}"
                            value="${currentPaid}"
                            class="swal2-input bg-gray-700 text-white border-gray-600">
@@ -245,7 +256,7 @@ async function openPaymentModal(paymentId, maxAmount, currentPaid, paymentDate, 
                               rows="3"
                               class="swal2-input bg-gray-700 text-white border-gray-600">${notes}</textarea>
                 </div>
-            </div>
+                </div>
         `,
         icon: 'info',
         showCancelButton: true,
@@ -316,15 +327,15 @@ async function openPaymentModal(paymentId, maxAmount, currentPaid, paymentDate, 
             formData.append('_method', 'PATCH');
 
             const response = await fetch(`{{ url('/admin/amortization') }}/${paymentId}/payment`, {
-                method: 'PATCH',
-                body: formData,
-                headers: {
+            method: 'PATCH',
+            body: formData,
+            headers: {
                     'Accept': 'application/json'
-                }
-            });
-            
-            const result = await response.json();
-            
+            }
+        });
+        
+        const result = await response.json();
+        
             if (response.ok && result.success) {
                 Swal.fire({
                     title: '¡Éxito!',
@@ -337,13 +348,13 @@ async function openPaymentModal(paymentId, maxAmount, currentPaid, paymentDate, 
                         htmlContainer: 'text-gray-300'
                     }
                 }).then(() => {
-                    location.reload();
+            location.reload();
                 });
-            } else {
+        } else {
                 throw new Error(result.message || 'Error al actualizar el pago');
-            }
-        } catch (error) {
-            console.error('Error:', error);
+        }
+    } catch (error) {
+        console.error('Error:', error);
             Swal.fire({
                 title: 'Error',
                 text: error.message || 'Error al actualizar el pago',
@@ -357,9 +368,10 @@ async function openPaymentModal(paymentId, maxAmount, currentPaid, paymentDate, 
             });
         }
     }
-}
+    };
 
-async function regenerateSchedule() {
+    // Define regenerateSchedule in global scope
+    window.regenerateSchedule = async function() {
     const confirmed = await Swal.fire({
         title: '¿Regenerar Tabla de Amortización?',
         html: `
@@ -426,6 +438,7 @@ async function regenerateSchedule() {
         document.body.appendChild(form);
         form.submit();
     }
+    };
 }
 
 // No longer needed - using SweetAlert2 modals
