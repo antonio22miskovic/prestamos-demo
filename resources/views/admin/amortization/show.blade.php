@@ -45,7 +45,7 @@
                     </svg>
                     Descargar PDF
                 </a>
-                <button onclick="regenerateSchedule()" 
+                <button id="regenerate-btn"
                         class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors">
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
@@ -175,8 +175,12 @@
                             ${{ number_format($payment->amount_paid, 2) }}
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <button onclick="openPaymentModal({{ $payment->id }}, {{ $payment->payment_amount }}, {{ $payment->amount_paid }}, '{{ $payment->payment_date ? $payment->payment_date->format('Y-m-d') : '' }}', '{{ addslashes($payment->notes ?? '') }}')"
-                                    class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 transition-colors">
+                            <button class="edit-payment-btn text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+                                    data-payment-id="{{ $payment->id }}"
+                                    data-max-amount="{{ $payment->payment_amount }}"
+                                    data-current-paid="{{ $payment->amount_paid }}"
+                                    data-payment-date="{{ $payment->payment_date ? $payment->payment_date->format('Y-m-d') : '' }}"
+                                    data-notes="{{ addslashes($payment->notes ?? '') }}">
                                 Editar
                             </button>
                         </td>
@@ -212,7 +216,28 @@
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
-// Define functions immediately in global scope
+document.addEventListener('DOMContentLoaded', function() {
+    // Attach event listeners to edit buttons
+    document.querySelectorAll('.edit-payment-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const paymentId = this.getAttribute('data-payment-id');
+            const maxAmount = this.getAttribute('data-max-amount');
+            const currentPaid = this.getAttribute('data-current-paid');
+            const paymentDate = this.getAttribute('data-payment-date');
+            const notes = this.getAttribute('data-notes');
+            openPaymentModal(paymentId, maxAmount, currentPaid, paymentDate, notes);
+        });
+    });
+    
+    // Attach event listener to regenerate button
+    const regenerateBtn = document.getElementById('regenerate-btn');
+    if (regenerateBtn) {
+        regenerateBtn.addEventListener('click', function() {
+            regenerateSchedule();
+        });
+    }
+});
+
 async function openPaymentModal(paymentId, maxAmount, currentPaid, paymentDate, notes) {
     const { value: formValues } = await Swal.fire({
         title: 'Editar Pago',
