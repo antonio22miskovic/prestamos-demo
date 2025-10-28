@@ -210,21 +210,22 @@
 @endsection
 
 @push('scripts')
-<script>
-// Load SweetAlert2 dynamically
-(function() {
-    const script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/sweetalert2@11';
-    script.async = true;
-    script.onload = function() {
-        // Initialize functions after SweetAlert2 loads
-        initializeFunctions();
-    };
-    document.head.appendChild(script);
-})();
-
-function initializeFunctions() {
-    // Define functions in global scope
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11" defer></script>
+<script defer>
+(async function() {
+    // Wait for DOM and SweetAlert2 to be ready
+    await new Promise(resolve => {
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', resolve);
+        } else {
+            resolve();
+        }
+    });
+    
+    // Wait a bit for SweetAlert2 to load
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    // Now define functions
     window.openPaymentModal = async function(paymentId, maxAmount, currentPaid, paymentDate, notes) {
     const { value: formValues } = await Swal.fire({
         title: 'Editar Pago',
@@ -369,8 +370,7 @@ function initializeFunctions() {
         }
     }
     };
-
-    // Define regenerateSchedule in global scope
+    
     window.regenerateSchedule = async function() {
     const confirmed = await Swal.fire({
         title: '¿Regenerar Tabla de Amortización?',
@@ -439,8 +439,6 @@ function initializeFunctions() {
         form.submit();
     }
     };
-}
-
-// No longer needed - using SweetAlert2 modals
+})();
 </script>
 @endpush
