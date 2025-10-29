@@ -14,8 +14,7 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             AdminSeeder::class,
-            ClientSeeder::class,
-            LoanApplicationSeeder::class,
+            RobustTestDataSeeder::class,
         ]);
     }
 }
