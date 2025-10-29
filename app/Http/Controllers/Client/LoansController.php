@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Client;
 
 use App\Http\Controllers\Controller;
 use App\Models\Client;
-use App\Models\Installment;
 use App\Models\AmortizationSchedule;
 use App\Models\Loan;
 use Illuminate\Http\Request;
@@ -81,27 +80,27 @@ class LoansController extends Controller
             }
 
             $amountPaid = $request->amount;
-            $originalPaymentAmount = $installment->amount;
+            $originalPaymentAmount = $schedule->payment_amount;
             $excessAmount = 0;
 
-            // Update current installment
+            // Update current schedule
             if ($amountPaid >= $originalPaymentAmount) {
-                $installment->status = 'paid';
+                $schedule->status = 'paid';
                 $excessAmount = $amountPaid - $originalPaymentAmount;
             } else {
-                $installment->status = 'partial';
+                $schedule->status = 'partial';
             }
 
-            $installment->paid_amount = $request->amount;
-            $installment->payment_date = $request->date;
-            $installment->notes = $request->notes;
-            $installment->save();
+            $schedule->amount_paid = $request->amount;
+            $schedule->payment_date = $request->date;
+            $schedule->notes = $request->notes;
+            $schedule->save();
 
-            // Apply excess to future installments
+            // Apply excess to future schedules
             if ($excessAmount > 0) {
                 $remainingExcess = $excessAmount;
-                $futureSchedules = Installment::where('loan_id', $loan->id)
-                    ->where('id', '>', $installment->id)
+                $futureSchedules = AmortizationSchedule::where('loan_id', $loan->id)
+                    ->where('id', '>', $schedule->id)
                     ->where('status', 'pending')
                     ->orderBy('id')
                     ->get();
@@ -109,19 +108,19 @@ class LoansController extends Controller
                 foreach ($futureSchedules as $futureSchedule) {
                     if ($remainingExcess <= 0) break;
 
-                    $futureAmount = $futureSchedule->amount;
+                    $futureAmount = $futureSchedule->payment_amount;
                     
                     if ($remainingExcess >= $futureAmount) {
                         $futureSchedule->status = 'paid';
-                        $futureSchedule->paid_amount = $futureAmount;
+                        $futureSchedule->amount_paid = $futureAmount;
                         $futureSchedule->payment_date = now();
-                        $futureSchedule->notes = 'Pago aplicado por adelantado desde cuota #' . $installment->installment_number;
+                        $futureSchedule->notes = 'Pago aplicado por adelantado desde cuota #' . $schedule->period_number;
                         $remainingExcess -= $futureAmount;
                     } else {
                         $futureSchedule->status = 'partial';
-                        $futureSchedule->paid_amount = $remainingExcess;
+                        $futureSchedule->amount_paid = $remainingExcess;
                         $futureSchedule->payment_date = now();
-                        $futureSchedule->notes = 'Pago parcial aplicado por adelantado desde cuota #' . $installment->installment_number;
+                        $futureSchedule->notes = 'Pago parcial aplicado por adelantado desde cuota #' . $schedule->period_number;
                         $remainingExcess = 0;
                     }
 
@@ -129,19 +128,15 @@ class LoansController extends Controller
                 }
             }
 
-            // Update loan remaining balance
-            $loan->remaining_balance = max(0, $loan->remaining_balance - $amountPaid);
-            
-            // Check if all installments are paid
-            $pendingInstallments = Installment::where('loan_id', $loan->id)
+            // Check if all schedules are paid
+            $pendingSchedules = AmortizationSchedule::where('loan_id', $loan->id)
                 ->where('status', '!=', 'paid')
                 ->count();
 
-            if ($pendingInstallments == 0) {
+            if ($pendingSchedules == 0) {
                 $loan->status = 'paid';
+                $loan->save();
             }
-            
-            $loan->save();
 
             return response()->json([
                 'success' => true,

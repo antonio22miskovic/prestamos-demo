@@ -165,7 +165,23 @@
                     @php
                         $client = auth()->user()->client;
                         $hasActiveApplication = $client && $client->loanApplications()->whereIn('status', ['draft', 'pending'])->exists();
-                        $hasUnpaidLoans = $client && $client->loans()->where('status', 'active')->exists();
+                        
+                        // Verificar si hay préstamos con cuotas pendientes de pago
+                        $hasUnpaidLoans = false;
+                        if ($client) {
+                            // Obtener IDs de préstamos activos o aprobados
+                            $activeLoanIds = $client->loans()
+                                ->whereIn('status', ['active', 'approved'])
+                                ->pluck('id');
+                            
+                            if ($activeLoanIds->isNotEmpty()) {
+                                // Verificar si alguno de estos préstamos tiene cuotas pendientes
+                                $hasUnpaidLoans = \App\Models\AmortizationSchedule::whereIn('loan_id', $activeLoanIds)
+                                    ->where('status', '!=', 'paid')
+                                    ->exists();
+                            }
+                        }
+                        
                         $canCreateNewApplication = !$hasActiveApplication && !$hasUnpaidLoans;
                     @endphp
                     
