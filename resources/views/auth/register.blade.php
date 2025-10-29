@@ -101,9 +101,16 @@
 
         <!-- Name -->
         <div>
-                        <x-input-label for="name" :value="__('Nombre completo')" />
-                        <x-text-input id="name" class="block mt-1 w-full" type="text" name="name" :value="old('name')" required autofocus autocomplete="name" placeholder="Ingresa tu nombre completo" />
-            <x-input-error :messages="$errors->get('name')" class="mt-2" />
+            <x-input-label for="first_name" :value="__('Nombre')" />
+            <x-text-input id="first_name" class="block mt-1 w-full" type="text" name="first_name" :value="old('first_name')" required autofocus autocomplete="given-name" placeholder="Ingresa tu nombre" />
+            <x-input-error :messages="$errors->get('first_name')" class="mt-2" />
+        </div>
+
+        <!-- Last Name -->
+        <div>
+            <x-input-label for="last_name" :value="__('Apellido')" />
+            <x-text-input id="last_name" class="block mt-1 w-full" type="text" name="last_name" :value="old('last_name')" required autocomplete="family-name" placeholder="Ingresa tu apellido" />
+            <x-input-error :messages="$errors->get('last_name')" class="mt-2" />
         </div>
 
         <!-- Email Address -->
@@ -158,12 +165,12 @@
                     </div>
 
                     <div>
-                        <x-primary-button class="w-full justify-center bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800">
+                        <x-primary-button id="submitBtn" class="w-full justify-center bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 disabled:cursor-not-allowed">
                             <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                             </svg>
                             {{ __('Crear mi cuenta') }}
-            </x-primary-button>
+                        </x-primary-button>
                     </div>
 
                     <div class="text-center">
@@ -178,4 +185,131 @@
             </div>
         </div>
     </div>
+
+    @push('scripts')
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const firstNameInput = document.getElementById('first_name');
+            const lastNameInput = document.getElementById('last_name');
+            const phoneInput = document.getElementById('phone');
+            const emailInput = document.getElementById('email');
+            const passwordInput = document.getElementById('password');
+            const passwordConfirmationInput = document.getElementById('password_confirmation');
+            const termsCheckbox = document.getElementById('terms');
+            const submitBtn = document.getElementById('submitBtn');
+
+            if (!firstNameInput || !lastNameInput || !submitBtn) {
+                console.error('Some form elements not found');
+                return;
+            }
+
+            // Initial state - button starts disabled
+            submitBtn.disabled = true;
+
+            function capitalizeWords(str) {
+                return str.toLowerCase().replace(/\b\w/g, function(char) {
+                    return char.toUpperCase();
+                });
+            }
+
+            // Capitalize first letter while typing
+            firstNameInput.addEventListener('input', function(e) {
+                if (e.target.value.length === 1 || 
+                    (e.target.value.length > 1 && e.target.value[e.target.value.length - 2] === ' ')) {
+                    const cursorPos = e.target.selectionStart;
+                    const newValue = e.target.value.split(' ').map(word => 
+                        word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+                    ).join(' ');
+                    e.target.value = newValue;
+                    e.target.setSelectionRange(cursorPos, cursorPos);
+                }
+                checkFormValidity();
+            });
+
+            lastNameInput.addEventListener('input', function(e) {
+                if (e.target.value.length === 1 || 
+                    (e.target.value.length > 1 && e.target.value[e.target.value.length - 2] === ' ')) {
+                    const cursorPos = e.target.selectionStart;
+                    const newValue = e.target.value.split(' ').map(word => 
+                        word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+                    ).join(' ');
+                    e.target.value = newValue;
+                    e.target.setSelectionRange(cursorPos, cursorPos);
+                }
+                checkFormValidity();
+            });
+
+            phoneInput.addEventListener('input', function(e) {
+                let value = e.target.value.replace(/\D/g, '');
+                
+                if (value.length > 0) {
+                    if (value.length <= 9) {
+                        value = '51' + value;
+                    }
+                    if (value.length >= 2) {
+                        value = '+' + value.substring(0, 2) + ' ' + value.substring(2);
+                    }
+                    if (value.length >= 7) {
+                        value = value.substring(0, 7) + ' ' + value.substring(7);
+                    }
+                    if (value.length >= 11) {
+                        value = value.substring(0, 11) + ' ' + value.substring(11, 15);
+                    }
+                }
+                
+                e.target.value = value;
+                checkFormValidity();
+            });
+
+            function isValidEmail(email) {
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                return emailRegex.test(email);
+            }
+
+            function isValidPhone(phone) {
+                const phoneRegex = /^\+51\s\d{3}\s\d{3}\s\d{3}$/;
+                return phoneRegex.test(phone);
+            }
+
+            function checkFormValidity() {
+                // Relaxed validation - just check that fields are filled
+                const isFirstNameValid = firstNameInput.value.trim().length > 0;
+                const isLastNameValid = lastNameInput.value.trim().length > 0;
+                const isEmailValid = emailInput.value.trim().length > 0 && emailInput.value.includes('@');
+                const isPhoneValid = phoneInput.value.trim().length > 10; // Just check minimum length
+                const isPasswordValid = passwordInput.value.length >= 8;
+                const isPasswordConfirmationValid = passwordConfirmationInput.value.length >= 8; // Just check minimum length
+                const isTermsAccepted = termsCheckbox.checked;
+
+                console.log('Validation checks:', {
+                    firstName: isFirstNameValid,
+                    lastName: isLastNameValid,
+                    email: isEmailValid,
+                    phone: isPhoneValid,
+                    password: isPasswordValid,
+                    passwordConf: isPasswordConfirmationValid,
+                    terms: isTermsAccepted,
+                    emailValue: emailInput.value,
+                    phoneValue: phoneInput.value
+                });
+
+                if (isFirstNameValid && isLastNameValid && isEmailValid && isPhoneValid && 
+                    isPasswordValid && isPasswordConfirmationValid && isTermsAccepted) {
+                    submitBtn.disabled = false;
+                    console.log('Form is valid, button enabled');
+                } else {
+                    submitBtn.disabled = true;
+                    console.log('Form is invalid, button disabled');
+                }
+            }
+
+            emailInput.addEventListener('input', checkFormValidity);
+            passwordInput.addEventListener('input', checkFormValidity);
+            passwordConfirmationInput.addEventListener('input', checkFormValidity);
+            termsCheckbox.addEventListener('change', checkFormValidity);
+
+            checkFormValidity();
+        });
+    </script>
+    @endpush
 </x-guest-layout>

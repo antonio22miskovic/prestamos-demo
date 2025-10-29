@@ -4,8 +4,12 @@ namespace App\Http\Controllers\Client;
 
 use App\Http\Controllers\Controller;
 use App\Models\Client;
+use App\Models\Installment;
+use App\Models\AmortizationSchedule;
+use App\Models\Loan;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class LoansController extends Controller
 {
@@ -47,9 +51,134 @@ class LoansController extends Controller
         $client = $user->client;
 
         $loan = $client->loans()
-            ->with(['installments', 'loanApplication'])
+            ->with(['installments', 'amortizationSchedule', 'loanApplication'])
             ->findOrFail($loanId);
 
         return view('client.loans.show', compact('client', 'loan'));
+    }
+
+    /**
+     * Process payment for a specific installment
+     */
+    public function processPayment(Request $request, Loan $loan)
+    {
+        $request->validate([
+            'installment_id' => 'required|exists:amortization_schedules,id',
+            'amount' => 'required|numeric|min:0.01',
+            'date' => 'required|date',
+            'notes' => 'nullable|string|max:500'
+        ]);
+
+        try {
+            $schedule = AmortizationSchedule::findOrFail($request->installment_id);
+            
+            // Verify installment belongs to the loan
+            if ($schedule->loan_id != $loan->id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'La cuota no pertenece a este préstamo.'
+                ], 400);
+            }
+
+            $amountPaid = $request->amount;
+            $originalPaymentAmount = $installment->amount;
+            $excessAmount = 0;
+
+            // Update current installment
+            if ($amountPaid >= $originalPaymentAmount) {
+                $installment->status = 'paid';
+                $excessAmount = $amountPaid - $originalPaymentAmount;
+            } else {
+                $installment->status = 'partial';
+            }
+
+            $installment->paid_amount = $request->amount;
+            $installment->payment_date = $request->date;
+            $installment->notes = $request->notes;
+            $installment->save();
+
+            // Apply excess to future installments
+            if ($excessAmount > 0) {
+                $remainingExcess = $excessAmount;
+                $futureSchedules = Installment::where('loan_id', $loan->id)
+                    ->where('id', '>', $installment->id)
+                    ->where('status', 'pending')
+                    ->orderBy('id')
+                    ->get();
+
+                foreach ($futureSchedules as $futureSchedule) {
+                    if ($remainingExcess <= 0) break;
+
+                    $futureAmount = $futureSchedule->amount;
+                    
+                    if ($remainingExcess >= $futureAmount) {
+                        $futureSchedule->status = 'paid';
+                        $futureSchedule->paid_amount = $futureAmount;
+                        $futureSchedule->payment_date = now();
+                        $futureSchedule->notes = 'Pago aplicado por adelantado desde cuota #' . $installment->installment_number;
+                        $remainingExcess -= $futureAmount;
+                    } else {
+                        $futureSchedule->status = 'partial';
+                        $futureSchedule->paid_amount = $remainingExcess;
+                        $futureSchedule->payment_date = now();
+                        $futureSchedule->notes = 'Pago parcial aplicado por adelantado desde cuota #' . $installment->installment_number;
+                        $remainingExcess = 0;
+                    }
+
+                    $futureSchedule->save();
+                }
+            }
+
+            // Update loan remaining balance
+            $loan->remaining_balance = max(0, $loan->remaining_balance - $amountPaid);
+            
+            // Check if all installments are paid
+            $pendingInstallments = Installment::where('loan_id', $loan->id)
+                ->where('status', '!=', 'paid')
+                ->count();
+
+            if ($pendingInstallments == 0) {
+                $loan->status = 'paid';
+            }
+            
+            $loan->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Pago registrado exitosamente. ' . ($excessAmount > 0 ? 'El excedente ha sido aplicado a las cuotas futuras.' : '')
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Error processing payment: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Hubo un error al procesar el pago. Por favor intenta nuevamente.'
+            ], 500);
+        }
+    }
+
+    /**
+     * Download loan statement as PDF
+     */
+    public function downloadStatement(Request $request, Loan $loan)
+    {
+        $user = $request->user();
+        $client = $user->client;
+
+        // Verify loan belongs to client
+        if ($loan->client_id != $client->id) {
+            abort(403, 'No tienes permisos para acceder a este préstamo.');
+        }
+
+        // Load necessary relationships
+        $loan->load(['installments', 'loanApplication']);
+        $client->load('user');
+
+        $pdf = Pdf::loadView('client.loans.statement-pdf', compact('loan', 'client'));
+        
+        $filename = 'Estado_Cuenta_Prestamo_' . str_pad($loan->id, 6, '0', STR_PAD_LEFT) . '_' . now()->format('Y-m-d') . '.pdf';
+        
+        return $pdf->download($filename);
     }
 }

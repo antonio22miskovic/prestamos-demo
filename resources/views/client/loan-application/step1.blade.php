@@ -175,9 +175,10 @@
                                     </label>
                                     <div class="relative">
                                         <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
-                                        <input type="number" id="income" name="income" value="{{ old('income', $client->income) }}" required min="0" step="0.01"
+                                        <input type="text" id="income" value="{{ old('income', $client->income) }}"
                                                class="mt-1 block w-full pl-8 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                                                placeholder="0.00">
+                                        <input type="hidden" id="income_hidden" name="income">
                                     </div>
                                     @error('income')
                                         <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
@@ -194,9 +195,10 @@
                                     </label>
                                     <div class="relative">
                                         <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
-                                        <input type="number" id="expenses" name="expenses" value="{{ old('expenses', $client->expenses) }}" required min="0" step="0.01"
+                                        <input type="text" id="expenses" value="{{ old('expenses', $client->expenses) }}"
                                                class="mt-1 block w-full pl-8 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                                                placeholder="0.00">
+                                        <input type="hidden" id="expenses_hidden" name="expenses">
                                     </div>
                                     @error('expenses')
                                         <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
@@ -245,9 +247,48 @@
 
     <!-- JavaScript for Net Income Calculation and Validation -->
     <script>
+        // Format currency input on blur
+        function formatCurrencyInput(input) {
+            let value = input.value.replace(/[^0-9.]/g, '');
+            if (value && value !== '') {
+                const numericValue = parseFloat(value);
+                if (!isNaN(numericValue)) {
+                    value = numericValue.toLocaleString('en-US', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                    });
+                    input.value = value;
+                }
+            }
+        }
+
+        // Format currency while typing (without decimals)
+        function formatCurrencyInputWhileTyping(input) {
+            let value = input.value.replace(/[^0-9]/g, '');
+            if (value === '') {
+                input.value = '';
+                return;
+            }
+            
+            // Format with thousand separators
+            const formattedValue = value.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            input.value = formattedValue;
+        }
+
+        // Get numeric value from formatted input
+        function getNumericValue(formattedValue) {
+            if (!formattedValue || formattedValue === '') {
+                return 0;
+            }
+            const cleanValue = formattedValue.toString().replace(/,/g, '');
+            return parseFloat(cleanValue) || 0;
+        }
+
         function calculateNetIncome() {
-            const income = parseFloat(document.getElementById('income').value) || 0;
-            const expenses = parseFloat(document.getElementById('expenses').value) || 0;
+            const incomeValue = document.getElementById('income').value;
+            const expensesValue = document.getElementById('expenses').value;
+            const income = getNumericValue(incomeValue);
+            const expenses = getNumericValue(expensesValue);
             const netIncome = income - expenses;
             
             document.getElementById('net-income').textContent = '$' + netIncome.toLocaleString('en-US', {
@@ -268,12 +309,47 @@
             validateForm();
         }
 
+        // Add event listeners for formatting
+        document.addEventListener('DOMContentLoaded', function() {
+            const incomeInput = document.getElementById('income');
+            const expensesInput = document.getElementById('expenses');
+
+            // Format on blur
+            incomeInput.addEventListener('blur', function() {
+                formatCurrencyInput(this);
+                calculateNetIncome();
+            });
+
+            expensesInput.addEventListener('blur', function() {
+                formatCurrencyInput(this);
+                calculateNetIncome();
+            });
+
+            // Calculate only, don't format while typing
+            incomeInput.addEventListener('input', function() {
+                const incomeHidden = document.getElementById('income_hidden');
+                if (incomeHidden) {
+                    incomeHidden.value = getNumericValue(incomeInput.value);
+                }
+                calculateNetIncome();
+            });
+            
+            expensesInput.addEventListener('input', function() {
+                const expensesHidden = document.getElementById('expenses_hidden');
+                if (expensesHidden) {
+                    expensesHidden.value = getNumericValue(expensesInput.value);
+                }
+                calculateNetIncome();
+            });
+
+        });
+
         function validateForm() {
             const employment = document.getElementById('employment').value;
             const companyName = document.getElementById('company_name').value.trim();
             const employmentYears = document.getElementById('employment_years').value;
-            const income = parseFloat(document.getElementById('income').value) || 0;
-            const expenses = parseFloat(document.getElementById('expenses').value) || 0;
+            const income = getNumericValue(document.getElementById('income').value);
+            const expenses = getNumericValue(document.getElementById('expenses').value);
             const submitBtn = document.getElementById('submit-btn');
             
             // Check all required fields
@@ -293,10 +369,12 @@
             }
             
             // Show validation messages
-            showValidationMessages(employment, companyName, employmentYears, income, expenses);
+            showValidationMessages(employment, companyName, employmentYears);
         }
         
-        function showValidationMessages(employment, companyName, employmentYears, income, expenses) {
+        function showValidationMessages(employment, companyName, employmentYears) {
+            const income = getNumericValue(document.getElementById('income').value);
+            const expenses = getNumericValue(document.getElementById('expenses').value);
             // Clear previous messages
             document.querySelectorAll('.validation-message').forEach(el => el.remove());
             
@@ -326,18 +404,59 @@
         document.getElementById('company_name').addEventListener('input', validateForm);
         document.getElementById('employment_years').addEventListener('change', validateForm);
         
-        // Prevent form submission if validation fails
-        document.querySelector('form').addEventListener('submit', function(e) {
-            const submitBtn = document.getElementById('submit-btn');
-            if (submitBtn.disabled) {
+        // Store original submit handler and add validation
+        const form = document.querySelector('form');
+        const originalSubmitHandler = form.onsubmit;
+        
+        form.addEventListener('submit', function(e) {
+            const income = getNumericValue(document.getElementById('income').value);
+            const expenses = getNumericValue(document.getElementById('expenses').value);
+            
+            // Validate income and expenses are greater than 0
+            if (income <= 0) {
                 e.preventDefault();
-                alert('Por favor completa todos los campos requeridos correctamente.');
+                alert('Los ingresos mensuales deben ser mayores a $0.00');
                 return false;
+            }
+            
+            if (expenses < 0) {
+                e.preventDefault();
+                alert('Los gastos mensuales no pueden ser negativos');
+                return false;
+            }
+            
+            // Update UPC hidden inputs before submission
+            const incomeHidden = document.getElementById('income_hidden');
+            const expensesHidden = document.getElementById('expenses_hidden');
+            
+            console.log('Setting hidden values:', {income, expenses});
+            console.log('Hidden inputs found:', {incomeHidden, expensesHidden});
+            
+            if (incomeHidden) {
+                incomeHidden.value = income;
+                console.log('Income hidden value set to:', incomeHidden.value);
+            }
+            if (expensesHidden) {
+                expensesHidden.value = expenses;
+                console.log('Expenses hidden value set to:', expensesHidden.value);
             }
         });
         
         // Calculate on page load
         document.addEventListener('DOMContentLoaded', function() {
+            const incomeInput = document.getElementById('income');
+            const expensesInput = document.getElementById('expenses');
+            const incomeHidden = document.getElementById('income_hidden');
+            const expensesHidden = document.getElementById('expenses_hidden');
+            
+            // Initialize hidden inputs with current values
+            if (incomeInput && incomeHidden) {
+                incomeHidden.value = getNumericValue(incomeInput.value);
+            }
+            if (expensesInput && expensesHidden) {
+                expensesHidden.value = getNumericValue(expensesInput.value);
+            }
+            
             calculateNetIncome();
             validateForm();
         });

@@ -70,9 +70,17 @@ class LoanApplicationController extends Controller
      */
     public function processStep1(Request $request)
     {
+        \Log::info('Step1 request data:', [
+            'all_data' => $request->all(),
+            'income' => $request->income,
+            'expenses' => $request->expenses,
+            'income_type' => gettype($request->income),
+            'expenses_type' => gettype($request->expenses)
+        ]);
+
         $request->validate([
             'employment' => 'required|string|in:Empleado privado,Empleado público,Independiente,Empresario,Pensionado',
-            'income' => 'required|numeric|min:1|max:999999.99',
+            'income' => 'required|numeric|min:0.01|max:999999.99',
             'expenses' => 'required|numeric|min:0|max:999999.99',
             'employment_years' => 'required|integer|min:0|max:50',
             'company_name' => 'required|string|min:2|max:255',
@@ -80,9 +88,11 @@ class LoanApplicationController extends Controller
             'employment.required' => 'La situación laboral es requerida.',
             'employment.in' => 'Selecciona una situación laboral válida.',
             'income.required' => 'Los ingresos mensuales son requeridos.',
-            'income.min' => 'Los ingresos deben ser mayor a $0.',
+            'income.numeric' => 'Los ingresos deben ser un valor numérico válido.',
+            'income.min' => 'Los ingresos deben ser mayor a $0.01.',
             'income.max' => 'Los ingresos no pueden exceder $999,999.99.',
             'expenses.required' => 'Los gastos mensuales son requeridos.',
+            'expenses.numeric' => 'Los gastos deben ser un valor numérico válido.',
             'expenses.min' => 'Los gastos no pueden ser negativos.',
             'expenses.max' => 'Los gastos no pueden exceder $999,999.99.',
             'employment_years.required' => 'Los años de experiencia son requeridos.',

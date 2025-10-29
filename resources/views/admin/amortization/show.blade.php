@@ -250,10 +250,10 @@ async function openPaymentModal(paymentId, maxAmount, currentPaid, paymentDate, 
                     <div class="relative">
                         <span class="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 font-medium">$</span>
                         <input id="swal-amount_paid" 
-                               name="amount_paid"
+                           name="amount_paid" 
                                type="number" 
-                               step="0.01" 
-                               min="0"
+                           step="0.01" 
+                           min="0"
                                value="${currentPaid}"
                                class="w-full pl-8 pr-4 py-2.5 bg-gray-700 text-white border border-gray-600 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
                     </div>
@@ -274,11 +274,11 @@ async function openPaymentModal(paymentId, maxAmount, currentPaid, paymentDate, 
                 <div>
                     <label class="block text-sm font-medium text-gray-300 mb-2">Notas</label>
                     <textarea id="swal-notes" 
-                              name="notes"
+                              name="notes" 
                               rows="3"
                               class="w-full px-4 py-2.5 bg-gray-700 text-white border border-gray-600 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none">${notes}</textarea>
                 </div>
-            </div>
+                </div>
         `,
         icon: 'info',
         showCancelButton: true,
@@ -352,12 +352,12 @@ async function openPaymentModal(paymentId, maxAmount, currentPaid, paymentDate, 
 
             const response = await fetch(`{{ route('admin.amortization.update-payment', ':id') }}`.replace(':id', paymentId), {
                 method: 'POST',
-                body: formData,
-                headers: {
+            body: formData,
+            headers: {
                     'Accept': 'application/json',
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                }
-            });
+            }
+        });
         
         const result = await response.json();
         

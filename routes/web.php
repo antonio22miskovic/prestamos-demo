@@ -78,6 +78,8 @@ Route::middleware(['auth', 'role:client'])->prefix('client')->name('client.')->g
     // Dashboard Sections
     Route::get('/loans', [App\Http\Controllers\Client\LoansController::class, 'index'])->name('loans.index');
     Route::get('/loans/{loan}', [App\Http\Controllers\Client\LoansController::class, 'show'])->name('loans.show');
+    Route::post('/loans/{loan}/process-payment', [App\Http\Controllers\Client\LoansController::class, 'processPayment'])->name('loans.process-payment');
+    Route::get('/loans/{loan}/download-statement', [App\Http\Controllers\Client\LoansController::class, 'downloadStatement'])->name('loans.download-statement');
     
     Route::get('/applications', [App\Http\Controllers\Client\ApplicationsController::class, 'index'])->name('applications.index');
     Route::get('/applications/{application}', [App\Http\Controllers\Client\ApplicationsController::class, 'show'])->name('applications.show');
